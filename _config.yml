@@ -18,5 +18,5 @@ github_username: domci
 markdown: kramdown
 host: 0.0.0.0
 
-theme: jekyll-theme-time-machine
-
+#theme: jekyll-theme-time-machine
+theme: hacker
