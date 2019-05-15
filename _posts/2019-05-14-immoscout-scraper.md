@@ -11,11 +11,11 @@ I am also interested in real estate, particularly in  the real estate market of 
 To shed some light onto this market I decided to collect some data and play with it.
 
 In this post I will run you through a basic webscraper in python.
-I am using the libraries [requests](https://2.python-requests.org/en/master/) and [Beautifulsoup](https://www.crummy.com/software/BeautifulSoup/).
+I am using the libraries [requests](https://2.python-requests.org/en/master/) and [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/).
 With [requests](https://2.python-requests.org/en/master/) I basically download the html document from the web that contains the information I am after.
-With [Beautifulsoup](https://www.crummy.com/software/BeautifulSoup/) I extract that information.
+With [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) I extract that information.
 
-In this post I will not waste too much time on details like how to come up with [Beautifulsoup](https://www.crummy.com/software/BeautifulSoup/) syntax to extract information.
+In this post I will not waste too much time on details like how to come up with [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) syntax to extract information.
 I do not consider this a tutorial but a commented example of how to scrape [Immoscout](https://www.immobilienscout24.de/).
 
 So lets get to it.
@@ -86,7 +86,7 @@ def get_soup(url, echo=False):
 
 
 Ok, so this first function uses requests to download the HTML document behind a given URL
-and parses it so [Beautifulsoup](https://www.crummy.com/software/BeautifulSoup/) can apply its magic to it.
+and parses it so [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) can apply its magic to it.
 
 
 ```python 
@@ -293,7 +293,7 @@ The function `scrape_details_chunk` is responsible for scraping the detailed inf
 What it does in particular is this:
 First it initiates empty lists for each piece or information we want to scrape like the classifieds title, square meters, number of rooms, you get the idea.
 Then it creates the URL for a specific flat by concentrating the base URL ´https://www.immobilienscout24.de/expose/´ with the classifieds ID  from the meta-data.
-It uses [Beautifulsoup](https://www.crummy.com/software/BeautifulSoup/) to parse and extract the data we are after and combines it into a DataFrame.
+It uses [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) to parse and extract the data we are after and combines it into a DataFrame.
 
 
 So much for setting everything up. Now we start scraping.
