@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Scrape Immoscout with Python Beatifulsoup in parallel"
+title: "Scrape immobilienscout24.de with in parallell with python"
 ---
 
 
