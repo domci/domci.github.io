@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Scrape immobilienscout24.de with in parallell with python"
+title: "Scrape immobilienscout24.de in parallel with python"
 ---
 
 
