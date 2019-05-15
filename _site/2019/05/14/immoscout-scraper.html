@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Scrape Immoscout with Python Beatifulsoup in parallel</title>
+  <meta name="description" content="I like webscraping. I find it amazing that with a bit of code one can collect whatever data from anywere in the web  and make use of it.I am also interested ...">
+
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="canonical" href="http://domci.github.io/2019/05/14/immoscout-scraper.html">
+  <link rel="alternate" type="application/rss+xml" title="Dom's Data Blog" href="http://domci.github.io/feed.xml">
+</head>
+
+
+  <body>
+
+    <header class="site-header">
+
+  <div class="wrapper">
+
+    <a class="site-title" href="/">Dom's Data Blog</a>
+
+    <nav class="site-nav">
+      <a href="#" class="menu-icon">
+        <svg viewBox="0 0 18 15">
+          <path fill="#424242" d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.031C17.335,0,18,0.665,18,1.484L18,1.484z"/>
+          <path fill="#424242" d="M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0c0-0.82,0.665-1.484,1.484-1.484 h15.031C17.335,6.031,18,6.696,18,7.516L18,7.516z"/>
+          <path fill="#424242" d="M18,13.516C18,14.335,17.335,15,16.516,15H1.484C0.665,15,0,14.335,0,13.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.031C17.335,12.031,18,12.696,18,13.516L18,13.516z"/>
+        </svg>
+      </a>
+
+      <div class="trigger">
+        
+          
+          <a class="page-link" href="/about/">About Me</a>
+          
+        
+          
+        
+          
+        
+          
+        
+      </div>
+    </nav>
+
+  </div>
+
+</header>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Scrape Immoscout with Python Beatifulsoup in parallel</h1>
+    <p class="post-meta"><time datetime="2019-05-14T00:00:00+02:00" itemprop="datePublished">May 14, 2019</time></p>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <p>I like webscraping. I find it amazing that with a bit of code one can collect whatever data from anywere in the web  and make use of it.
+I am also interested in real estate, particularly in  the real estate market of my hometown Hamburg, Germany. 
+To shed some light onto this market I decided to collect some data and play with it.</p>
+
+<p>In this post I will run you through a basic webscraper in python.
+I am using the libraries <a href="https://2.python-requests.org/en/master/">requests</a> and <a href="https://www.crummy.com/software/BeautifulSoup/">Beautifulsoup</a>.
+With <a href="https://2.python-requests.org/en/master/">requests</a> I basically download the html document from the web that contains the information I am after.
+With <a href="https://www.crummy.com/software/BeautifulSoup/">Beautifulsoup</a> I extract that information.</p>
+
+<p>In this post I will not waste too much time on details like how to come up with <a href="https://www.crummy.com/software/BeautifulSoup/">Beautifulsoup</a> syntax to extract information.
+I do not consider this a tutorial but a commented example of how to scrape <a href="https://www.immobilienscout24.de/">Immoscout</a>.</p>
+
+<p>So lets get to it.</p>
+
+<h2 id="the-rough-plan">The rough plan</h2>
+<p>In order to get all information on real estates for rent in Hamburg I first use the website  <a href="https://www.immobilienscout24.de/">Immoscout</a> and enter our search criteria.
+E.g. Flats for rent in Hamburg area.</p>
+
+<p>That leads us to the first results page with matching classifieds. There you can see that certain data like classifieds ID and address are already shown.</p>
+
+<p>So why not collect this data already. 
+I will call this data “meta” data.</p>
+
+<p>On the bottom of the results page you see a dropdown menue with page numbers. One page on <a href="https://www.immobilienscout24.de/">Immoscout</a> shows a maximum of 20
+classifieds so I need to browse through all pages available to scrape all classifieds.</p>
+
+<p>I use the pages information and the meta data to build a list of all available rent classifieds, to later scrape detail information for each of them.</p>
+
+<p>When you now click on one of the flat offers, you will realize that the url looks like this <code class="highlighter-rouge">https://www.immobilienscout24.de/expose/90724026</code> plus a bunch of  parameters you can ignore for now.</p>
+
+<p>That number in the end of the url is the classifieds ID (or expose ID).</p>
+
+<p>Thats perfect, because now I can easily loop over our meta data that contains a lots of these ids, build URLs from them and scrape additional information.</p>
+
+<h2 id="the-setup">The Setup</h2>
+
+<p>First I import all the libraries that I need:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">from</span> <span class="nn">bs4</span> <span class="kn">import</span> <span class="n">BeautifulSoup</span> 
+<span class="kn">import</span> <span class="nn">time</span> 
+<span class="kn">import</span> <span class="nn">requests</span> 
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="n">pd</span> 
+<span class="kn">import</span> <span class="nn">re</span> 
+<span class="kn">import</span> <span class="nn">datetime</span> 
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="n">np</span> 
+<span class="kn">import</span> <span class="nn">multiprocessing</span> 
+<span class="kn">from</span> <span class="nn">pebble</span> 
+<span class="kn">import</span> <span class="n">ProcessPool</span> <span class="kn">from</span> 
+<span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">TimeoutError</span>
+
+
+
+</code></pre></div></div>
+
+<p>Then I define some functions that do the heavy lifting.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="k">def</span> <span class="nf">get_soup</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">echo</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    
+    <span class="k">if</span> <span class="n">echo</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">'scraping:'</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
+    
+    <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">text</span>
+    <span class="n">soup</span> <span class="o">=</span> <span class="n">BeautifulSoup</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s">"lxml"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">soup</span> 
+
+
+
+</code></pre></div></div>
+
+<p>Ok, so this first function uses requests to download the HTML document behind a given URL
+and parses it so <a href="https://www.crummy.com/software/BeautifulSoup/">Beautifulsoup</a> can apply its magic to it.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">parallelize_function_timeout</span><span class="p">(</span><span class="n">urls</span><span class="p">,</span> <span class="n">func</span><span class="p">):</span>
+	<span class="k">with</span> <span class="n">ProcessPool</span><span class="p">()</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span> 
+		<span class="n">future</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="nb">map</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">urls</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">90</span><span class="p">)</span> 
+		<span class="n">iterator</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+		<span class="n">result</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+		<span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+			<span class="k">try</span><span class="p">:</span>
+				<span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="n">iterator</span><span class="p">))</span>
+			<span class="k">except</span> <span class="nb">StopIteration</span><span class="p">:</span>
+				<span class="k">break</span>
+			<span class="k">except</span> <span class="n">TimeoutError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+				<span class="k">print</span><span class="p">(</span><span class="s">"scraping took longer than </span><span class="si">%</span><span class="s">d seconds"</span> <span class="o">%</span> <span class="n">error</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+		<span class="k">return</span> <span class="n">result</span> 
+		
+		
+		
+</code></pre></div></div>
+
+<p>The <code class="highlighter-rouge">parallelize_function_timeout</code> takes a list of inputs (URLs) and a function and runs this function in parallel using <a href="https://code.google.com/archive/p/python-multiprocessing/">multiprocessing</a>.</p>
+
+<p>I use <a href="https://code.google.com/archive/p/python-multiprocessing/">multiprocessing</a> here because scraping large amounts of URLs is a very I/O-Bound task. While it is not that computationally expesive the bottlenec really is I/O-Flow. To speed it up I will be scraping with multiple processes simultaneously.</p>
+
+<p>So whats going on in this function?</p>
+
+<p>First, I initiate a pool of subprocesses and run our function on the list of URLs with <code class="highlighter-rouge">future = pool.map(func, urls, timeout=90)</code> and specify a timeout duration in seconds. 
+The results of all subprocesses running our function are appended into <code class="highlighter-rouge">results</code> and returned from the  <code class="highlighter-rouge">parallelize_function_timeout</code> function .If the iteration is stopped, e.g. by a keyboard interrupt it stops, if the function takes too long for one URL it times out and the URL is skipped.</p>
+
+<p>We are now done with all the process management and can finally take care of the information retrieval.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="k">def</span> <span class="nf">scrape_meta_chunk</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">return_soup</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    
+    <span class="n">soup</span> <span class="o">=</span> <span class="n">get_soup</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+            <span class="p">[</span>
+            <span class="p">[</span><span class="n">location</span><span class="p">[</span><span class="s">'data-result-id'</span><span class="p">],</span>
+             <span class="n">location</span><span class="o">.</span><span class="n">getText</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">', '</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+             <span class="n">location</span><span class="o">.</span><span class="n">getText</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">', '</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">],</span>
+             <span class="n">location</span><span class="o">.</span><span class="n">getText</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">', '</span><span class="p">)[</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">location</span><span class="o">.</span><span class="n">getText</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">', '</span><span class="p">))</span> <span class="o">==</span> <span class="mi">3</span> <span class="k">else</span> <span class="s">''</span><span class="p">,</span>
+             <span class="nb">str</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())]</span>
+            <span class="k">for</span> <span class="n">location</span> <span class="ow">in</span>
+            <span class="n">soup</span><span class="o">.</span><span class="n">findAll</span><span class="p">(</span><span class="s">"button"</span><span class="p">,</span> <span class="p">{</span><span class="s">"class"</span><span class="p">:</span> <span class="s">"button-link link-internal result-list-entry__map-link"</span><span class="p">,</span> <span class="s">"title"</span><span class="p">:</span> <span class="s">"Auf der Karte anzeigen"</span><span class="p">})],</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s">'id'</span><span class="p">,</span><span class="s">'city_county'</span><span class="p">,</span> <span class="s">'city_quarter'</span><span class="p">,</span> <span class="s">'street'</span><span class="p">,</span> <span class="s">'scraped_ts'</span><span class="p">]</span>
+        <span class="p">)</span>
+        
+    <span class="k">except</span> <span class="nb">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">return_soup</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">soup</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">data</span> 
+
+
+
+</code></pre></div></div>
+
+<p>This function extracts what I earlier called meta-data. 
+It downloads a search results page from <a href="https://www.immobilienscout24.de/">Immoscout</a> and extracts ID and addresses of all 20 listed results.</p>
+
+<p>For that I use a python list comprehension to iterate through occurences of the HTML-Tag <code class="highlighter-rouge">&lt;button&gt;</code> with the class <code class="highlighter-rouge">button-link link-internal result-list-entry__map-link</code> and the title <code class="highlighter-rouge">Auf der Karte anzeigen</code>.
+From each occurence (iteration) it retrieves the information we are after and stores it in a neat <a href="https://pandas.pydata.org/">pandas</a> DataFrame.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="k">def</span> <span class="nf">scrape_details_chunk</span><span class="p">(</span><span class="n">realty</span><span class="p">):</span>
+        
+    <span class="n">expose_id</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">title</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">realty_type</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">floor</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">square_m</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">storage_m</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">num_rooms</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">num_bedrooms</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">num_baths</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">num_carparks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">year_built</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">last_refurb</span><span class="o">=</span> <span class="p">[]</span>
+    <span class="n">quality</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">heating_type</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">fuel_type</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">energy_consumption</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">energy_class</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">net_rent</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">gross_rent</span> <span class="o">=</span> <span class="p">[]</span>
+    
+            
+    <span class="n">url</span> <span class="o">=</span> <span class="s">'https://www.immobilienscout24.de/expose/'</span> <span class="o">+</span> <span class="n">realty</span>
+    
+    <span class="n">soup</span><span class="o">=</span> <span class="n">get_soup</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+    <span class="n">expose_id</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">realty</span><span class="p">)</span>
+    <span class="n">title</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'title'</span><span class="p">)</span><span class="o">.</span><span class="n">getText</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-typ grid-item three-fifths"</span><span class="p">}):</span>
+        <span class="n">realty_type</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-typ grid-item three-fifths"</span><span class="p">})</span><span class="o">.</span><span class="n">getText</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">' '</span><span class="p">,</span> <span class="s">''</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">realty_type</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-etage grid-item three-fifths"</span><span class="p">}):</span>
+        <span class="n">floor</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-etage grid-item three-fifths"</span><span class="p">})</span><span class="o">.</span><span class="n">getText</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">floor</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-wohnflaeche-ca grid-item three-fifths"</span><span class="p">}):</span>
+        <span class="n">square_m</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-wohnflaeche-ca grid-item three-fifths"</span><span class="p">})</span><span class="o">.</span><span class="n">getText</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">' '</span><span class="p">,</span> <span class="s">''</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">'m²'</span><span class="p">,</span> <span class="s">''</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">square_m</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-nutzflaeche-ca grid-item three-fifths"</span><span class="p">}):</span>
+        <span class="n">storage_m</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-nutzflaeche-ca grid-item three-fifths"</span><span class="p">})</span><span class="o">.</span><span class="n">getText</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">' '</span><span class="p">,</span> <span class="s">''</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">'m²'</span><span class="p">,</span> <span class="s">''</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">storage_m</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-zimmer grid-item three-fifths"</span><span class="p">}):</span>
+        <span class="n">num_rooms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-zimmer grid-item three-fifths"</span><span class="p">})</span><span class="o">.</span><span class="n">getText</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">' '</span><span class="p">,</span> <span class="s">''</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+         <span class="n">num_rooms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-schlafzimmer grid-item three-fifths"</span><span class="p">}):</span>
+        <span class="n">num_bedrooms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-schlafzimmer grid-item three-fifths"</span><span class="p">})</span><span class="o">.</span><span class="n">getText</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">' '</span><span class="p">,</span> <span class="s">''</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">num_bedrooms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-badezimmer grid-item three-fifths"</span><span class="p">}):</span>
+        <span class="n">num_baths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-badezimmer grid-item three-fifths"</span><span class="p">})</span><span class="o">.</span><span class="n">getText</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">' '</span><span class="p">,</span> <span class="s">''</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">num_baths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-garage-stellplatz grid-item three-fifths"</span><span class="p">}):</span>
+        <span class="n">num_carparks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s">'[^0-9]'</span><span class="p">,</span> <span class="s">''</span><span class="p">,</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-garage-stellplatz grid-item three-fifths"</span><span class="p">})</span><span class="o">.</span><span class="n">getText</span><span class="p">()))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">num_carparks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'div'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-kaltmiete is24-value font-semibold"</span><span class="p">}):</span>
+        <span class="n">net_rent</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s">'[^0-9]'</span><span class="p">,</span> <span class="s">''</span><span class="p">,</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'div'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-kaltmiete is24-value font-semibold"</span><span class="p">})</span><span class="o">.</span><span class="n">getText</span><span class="p">()))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">net_rent</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-baujahr grid-item three-fifths"</span><span class="p">}):</span>
+        <span class="n">year_built</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-baujahr grid-item three-fifths"</span><span class="p">})</span><span class="o">.</span><span class="n">getText</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">year_built</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-modernisierung-sanierung grid-item three-fifths"</span><span class="p">}):</span>
+        <span class="n">last_refurb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-modernisierung-sanierung grid-item three-fifths"</span><span class="p">})</span><span class="o">.</span><span class="n">getText</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">last_refurb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-qualitaet-der-ausstattung grid-item three-fifths"</span><span class="p">}):</span>
+        <span class="n">quality</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-qualitaet-der-ausstattung grid-item three-fifths"</span><span class="p">})</span><span class="o">.</span><span class="n">getText</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">quality</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-heizungsart grid-item three-fifths"</span><span class="p">}):</span>
+        <span class="n">heating_type</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-heizungsart grid-item three-fifths"</span><span class="p">})</span><span class="o">.</span><span class="n">getText</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">heating_type</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-wesentliche-energietraeger grid-item three-fifths"</span><span class="p">}):</span>
+        <span class="n">fuel_type</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-wesentliche-energietraeger grid-item three-fifths"</span><span class="p">})</span><span class="o">.</span><span class="n">getText</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fuel_type</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-endenergiebedarf grid-item three-fifths"</span><span class="p">}):</span>
+        <span class="n">energy_consumption</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-endenergiebedarf grid-item three-fifths"</span><span class="p">})</span><span class="o">.</span><span class="n">getText</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">energy_consumption</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-energieeffizienzklasse grid-item three-fifths"</span><span class="p">}):</span>
+        <span class="n">energy_class</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-energieeffizienzklasse grid-item three-fifths"</span><span class="p">})</span><span class="o">.</span><span class="n">getText</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">energy_class</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-gesamtmiete grid-item three-fifths font-bold"</span><span class="p">}):</span>
+        <span class="n">gross_rent</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">'dd'</span><span class="p">,</span> <span class="p">{</span><span class="s">'class'</span><span class="p">:</span><span class="s">"is24qa-gesamtmiete grid-item three-fifths font-bold"</span><span class="p">})</span><span class="o">.</span><span class="n">getText</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">' €'</span><span class="p">,</span><span class="s">''</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">gross_rent</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+    <span class="s">'id'</span><span class="p">:</span> <span class="n">expose_id</span><span class="p">,</span>
+    <span class="s">'title'</span><span class="p">:</span> <span class="n">title</span><span class="p">,</span>
+    <span class="s">'realty_type'</span><span class="p">:</span> <span class="n">realty_type</span><span class="p">,</span>
+    <span class="s">'floor'</span><span class="p">:</span> <span class="n">floor</span><span class="p">,</span>
+    <span class="s">'square_m'</span><span class="p">:</span> <span class="n">square_m</span><span class="p">,</span>
+    <span class="s">'storage_m'</span><span class="p">:</span> <span class="n">storage_m</span><span class="p">,</span>
+    <span class="s">'num_rooms'</span><span class="p">:</span> <span class="n">num_rooms</span><span class="p">,</span>
+    <span class="s">'num_bedrooms'</span><span class="p">:</span> <span class="n">num_bedrooms</span><span class="p">,</span>
+    <span class="s">'num_baths'</span><span class="p">:</span> <span class="n">num_baths</span><span class="p">,</span>
+    <span class="s">'num_carparks'</span><span class="p">:</span> <span class="n">num_carparks</span><span class="p">,</span>
+    <span class="s">'year_built'</span><span class="p">:</span> <span class="n">year_built</span><span class="p">,</span>
+    <span class="s">'last_refurb'</span><span class="p">:</span> <span class="n">last_refurb</span><span class="p">,</span>
+    <span class="s">'quality'</span><span class="p">:</span> <span class="n">quality</span><span class="p">,</span>
+    <span class="s">'heating_type'</span><span class="p">:</span> <span class="n">heating_type</span><span class="p">,</span>
+    <span class="s">'fuel_type'</span><span class="p">:</span> <span class="n">fuel_type</span><span class="p">,</span>
+    <span class="s">'energy_consumption'</span><span class="p">:</span> <span class="n">energy_consumption</span><span class="p">,</span>
+    <span class="s">'energy_class'</span><span class="p">:</span> <span class="n">energy_class</span><span class="p">,</span>
+    <span class="s">'net_rent'</span><span class="p">:</span> <span class="n">net_rent</span><span class="p">,</span>
+    <span class="s">'gross_rent'</span><span class="p">:</span> <span class="n">gross_rent</span><span class="p">,</span>
+    <span class="s">'scraped_ts'</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span>
+    <span class="p">})</span>
+    
+    <span class="k">return</span> <span class="n">results</span>
+
+
+
+</code></pre></div></div>
+
+<p>The function <code class="highlighter-rouge">scrape_details_chunk</code> is responsible for scraping the detailed information from each flats details page. This function comes to action when we loop throuh each classifieds ID using URLs like <code class="highlighter-rouge">https://www.immobilienscout24.de/expose/90724026</code>.</p>
+
+<p>What it does in particular is this:
+First it initiates empty lists for each piece or information we want to scrape like the classifieds title, square meters, number of rooms, you get the idea.
+Then it creates the URL for a specific flat by concentrating the base URL ´https://www.immobilienscout24.de/expose/´ with the classifieds ID  from the meta-data.
+It uses <a href="https://www.crummy.com/software/BeautifulSoup/">Beautifulsoup</a> to parse and extract the data we are after and combines it into a DataFrame.</p>
+
+<p>So much for setting everything up. Now we start scraping.</p>
+
+<h2 id="the-scraping-process">The Scraping Process</h2>
+
+<p>Until now I explained how the scraping will be done and what functions I came up with to do the actual scraping.
+Now we need to put all that to use.</p>
+
+<p>First, we scrape the meta-data from the first result page of our real estate search. So we use the function <code class="highlighter-rouge">scrape_meta_chunk</code> on <code class="highlighter-rouge">https://www.immobilienscout24.de/Suche/S-T/P-1/Wohnung-Miete/Umkreissuche/Hamburg/-/1840/2621814/-/-/30</code>.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+
+<span class="n">url</span> <span class="o">=</span> <span class="s">'https://www.immobilienscout24.de/Suche/S-T/P-1/Wohnung-Miete/Umkreissuche/Hamburg/-/1840/2621814/-/-/30'</span> 
+
+<span class="n">realty_meta_df</span><span class="p">,</span> <span class="n">soup</span> <span class="o">=</span> <span class="n">scrape_meta_chunk</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">return_soup</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> 
+
+<span class="n">num_pages</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">soup</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s">'option'</span><span class="p">))</span> 
+
+<span class="k">print</span><span class="p">(</span><span class="s">'scraped'</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">realty_meta_df</span><span class="p">),</span> <span class="s">'realties on first page'</span><span class="p">)</span> 
+<span class="k">print</span><span class="p">(</span><span class="s">'found'</span><span class="p">,</span> <span class="n">num_pages</span><span class="p">,</span> <span class="s">'pages to scrape'</span><span class="p">)</span> 
+
+
+</code></pre></div></div>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&gt; scraped 20 realties on first page
+&gt; found 101 pages to scrape 
+</code></pre></div></div>
+
+<p>With <code class="highlighter-rouge">num_pages = len(soup.find_all('option'))</code> we extract the number of result pages for this search so we can loop over each page later.
+Now that we know how many pages there are with our search results (101 in this case) we can start looping over them and extract the meta-data from each of them.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+
+<span class="n">realty_meta_urls</span> <span class="o">=</span> <span class="p">[</span><span class="s">'https://www.immobilienscout24.de/Suche/S-T/P-'</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">page</span><span class="p">)</span> <span class="o">+</span> <span class="s">'/Wohnung-Miete/Umkreissuche/Hamburg/-/1840/2621814/-/-/30'</span> <span class="k">for</span> <span class="n">page</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">num_pages</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span> <span class="n">realty_meta_df</span> <span class="o">=</span> 
+<span class="n">realty_meta_df</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">parallelize_function_timeout</span><span class="p">(</span><span class="n">realty_meta_urls</span><span class="p">,</span> <span class="n">scrape_meta_chunk</span><span class="p">))</span>
+<span class="k">print</span><span class="p">(</span><span class="s">'Done'</span><span class="p">)</span>
+ 
+    
+      
+</code></pre></div></div>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&gt; Done 
+</code></pre></div></div>
+
+<p>Here we crate a new URL for each page number we have found. This gives us a list of 101 pages to scrape meta-data from.
+We pass this list and the function <code class="highlighter-rouge">realty_meta_urls</code> to the <code class="highlighter-rouge">parallelize_function_timeout</code> to scrape these URLs on multiple cores.
+This gives us a DataFrame containing meta-data for all found classifieds including their IDs.
+With that we are able to scrape each detail page as follows.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+
+<span class="n">realty_details</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+<span class="n">columns</span><span class="o">=</span><span class="p">[</span>
+    <span class="s">'expose_id'</span><span class="p">,</span>
+    <span class="s">'title'</span><span class="p">,</span>
+    <span class="s">'realty_type'</span><span class="p">,</span>
+    <span class="s">'floor'</span><span class="p">,</span>
+    <span class="s">'square_m'</span><span class="p">,</span>
+    <span class="s">'storage_m'</span><span class="p">,</span>
+    <span class="s">'num_rooms'</span><span class="p">,</span>
+    <span class="s">'num_bedrooms'</span><span class="p">,</span>
+    <span class="s">'num_baths'</span><span class="p">,</span>
+    <span class="s">'num_carparks'</span><span class="p">,</span>
+    <span class="s">'year_built'</span><span class="p">,</span>
+    <span class="s">'last_refurb'</span><span class="p">,</span>
+    <span class="s">'quality'</span><span class="p">,</span>
+    <span class="s">'heating_type'</span><span class="p">,</span>
+    <span class="s">'fuel_type'</span><span class="p">,</span>
+    <span class="s">'energy_consumption'</span><span class="p">,</span>
+    <span class="s">'energy_class'</span><span class="p">,</span>
+    <span class="s">'net_rent'</span><span class="p">,</span>
+    <span class="s">'gross_rent'</span> <span class="p">])</span>
+	
+	
+
+<span class="n">realties</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">realty_meta_df</span><span class="o">.</span><span class="nb">id</span><span class="p">)))</span> 
+
+<span class="k">print</span><span class="p">(</span><span class="s">'scraping'</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">realties</span><span class="p">),</span> <span class="s">'realties...'</span><span class="p">)</span> 
+<span class="n">realty_details_df</span> <span class="o">=</span> <span class="n">parallelize_function_timeout</span><span class="p">(</span><span class="n">realties</span><span class="p">,</span> <span class="n">scrape_details_chunk</span><span class="p">)</span>
+<span class="n">realty_details_df</span> <span class="o">=</span> <span class="n">realty_details_df</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span> 
+<span class="n">realty_details_df</span> <span class="o">=</span> <span class="n">realty_details_df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span> 
+
+<span class="k">print</span><span class="p">(</span><span class="s">'scraped'</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">realty_details_df</span><span class="p">),</span> <span class="s">'realties.'</span><span class="p">)</span> 
+
+
+
+</code></pre></div></div>
+<div class="highlighter-rouge"><div class="highlight"><pre class="highlight"><code>&gt; scraping 2020 realties...
+&gt; scraped 2020 realties. 
+</code></pre></div></div>
+
+<p>Here I am creating a new DataFrame with a column for each data dimension I am scraping. Then I pass a list of classifieds IDs to the <code class="highlighter-rouge">scrape_details_chunk</code> via <code class="highlighter-rouge">parallelize_function_timeout</code>. This takes a while and finally returns a clean DataFrame containing all desired detail-data.
+At last I merge the detail-data with the meta-data to end up with only one DataFrame and print the first few rows of the scraped data.</p>
+
+<p>Thats it. We are done.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code>
+<span class="n">realty_meta_df</span><span class="p">[</span><span class="s">'id'</span><span class="p">]</span> <span class="o">=</span> <span class="n">realty_meta_df</span><span class="p">[</span><span class="s">'id'</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span> 
+<span class="n">realty_details_df</span><span class="p">[</span><span class="s">'id'</span><span class="p">]</span> <span class="o">=</span> <span class="n">realty_details_df</span><span class="p">[</span><span class="s">'id'</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span> 
+
+<span class="n">final_data</span> <span class="o">=</span> <span class="n">realty_meta_df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s">'scraped_ts'</span><span class="p">,</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">realty_details_df</span><span class="p">,</span> <span class="n">on</span><span class="o">=</span><span class="s">'id'</span><span class="p">,</span> <span class="n">suffixes</span> <span class="o">=</span> <span class="p">[</span><span class="s">'_meta'</span><span class="p">,</span> <span class="s">'_details'</span><span class="p">])</span> 
+
+
+ 
+<span class="n">final_data</span><span class="o">.</span><span class="n">head</span><span class="p">()</span> 
+</code></pre></div></div>
+
+<table>
+  <thead>
+    <tr>
+      <th></th>
+      <th>id</th>
+      <th>city_county</th>
+      <th>city_quarter</th>
+      <th>street</th>
+      <th>title</th>
+      <th>realty_type</th>
+      <th>floor</th>
+      <th>square_m</th>
+      <th>storage_m</th>
+      <th>num_rooms</th>
+      <th>...</th>
+      <th>year_built</th>
+      <th>last_refurb</th>
+      <th>quality</th>
+      <th>heating_type</th>
+      <th>fuel_type</th>
+      <th>energy_consumption</th>
+      <th>energy_class</th>
+      <th>net_rent</th>
+      <th>gross_rent</th>
+      <th>scraped_ts</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>110713974</td>
+      <td>Hamburg</td>
+      <td>Altona-Nord</td>
+      <td>Glückel-von-Hameln-Straße 2</td>
+      <td>neue Wohnung - neues Glück</td>
+      <td>Etagenwohnung</td>
+      <td>0</td>
+      <td>75,14</td>
+      <td>0</td>
+      <td>2</td>
+      <td>...</td>
+      <td>2019</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1150</td>
+      <td>1.370,66</td>
+      <td>2019-05-14 13:30:01.252678</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>110714010</td>
+      <td>Hamburg</td>
+      <td>Altona-Nord</td>
+      <td>Susanne-von-Paczensky-Straße 9</td>
+      <td>Grandiose 4-Zimmerwohung! ***Erstbezug***</td>
+      <td>Etagenwohnung</td>
+      <td>0</td>
+      <td>99,39</td>
+      <td>0</td>
+      <td>4</td>
+      <td>...</td>
+      <td>2019</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1440</td>
+      <td>1.828,13</td>
+      <td>2019-05-14 13:29:57.649693</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>110247048</td>
+      <td>Hamburg</td>
+      <td>Altona-Nord</td>
+      <td>Susanne-von-Paczensky-Straße 7</td>
+      <td>Traumhafte Penthousewohnung! ***Erstbezug***</td>
+      <td>Etagenwohnung</td>
+      <td>0</td>
+      <td>166,02</td>
+      <td>0</td>
+      <td>5</td>
+      <td>...</td>
+      <td>2019</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>2500</td>
+      <td>3.090,15</td>
+      <td>2019-05-14 13:29:32.219968</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>110247042</td>
+      <td>Hamburg</td>
+      <td>Altona-Nord</td>
+      <td>Susanne-von-Paczensky-Straße 11</td>
+      <td>Geniale 3-Zimmerwohnung! ***Erstbezug***</td>
+      <td>Etagenwohnung</td>
+      <td>0</td>
+      <td>97,65</td>
+      <td>0</td>
+      <td>3</td>
+      <td>...</td>
+      <td>2019</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1470</td>
+      <td>1.854,57</td>
+      <td>2019-05-14 13:29:44.507045</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>110714047</td>
+      <td>Hamburg</td>
+      <td>Altona-Nord</td>
+      <td>Eva-Rühmkorf-Straße 8</td>
+      <td>***Hervorragende 3-Zimmerwohnung*** Erstbezug!</td>
+      <td>Etagenwohnung</td>
+      <td>0</td>
+      <td>86,04</td>
+      <td>0</td>
+      <td>3</td>
+      <td>...</td>
+      <td>2019</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>1300</td>
+      <td>1.648,85</td>
+      <td>2019-05-14 13:29:47.011108</td>
+    </tr>
+  </tbody> </table>
+
+  </div>
+
+</article>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Dom's Data Blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li><a href="mailto:"></a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2">
+        <ul class="social-media-list">
+          
+
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3">
+        <p>A blog about my latest projects in data analytics and data science.</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

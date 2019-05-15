@@ -1,0 +1,19 @@
+# Welcome to Jekyll!
+#
+# This config file is meant for settings that affect your whole blog, values
+# which you are expected to set up once and rarely need to edit after that.
+# For technical reasons, this file is *NOT* reloaded automatically when you use
+# 'jekyll serve'. If you change this file, please restart the server process.
+
+# Site settings
+title: Dom's Data Blog
+email: 
+description: A blog about my latest projects in data analytics and data science.
+#baseurl: "domchi.github.io" # the subpath of your site, e.g. /blog
+url: "http://domci.github.io" # the base hostname & protocol for your site
+twitter_username: 
+github_username: domci
+
+# Build settings
+markdown: kramdown
+host: 0.0.0.0
