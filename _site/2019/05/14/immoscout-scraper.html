@@ -6,7 +6,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>Scrape Immoscout with Python Beatifulsoup in parallel</title>
+  <title>Scrape immobilienscout24.de in parallel with python</title>
   <meta name="description" content="I like webscraping. I find it amazing that with a bit of code one can collect whatever data from anywere in the web  and make use of it.I am also interested ...">
 
   <link rel="stylesheet" href="/css/main.css">
@@ -57,7 +57,7 @@
         <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
 
   <header class="post-header">
-    <h1 class="post-title" itemprop="name headline">Scrape Immoscout with Python Beatifulsoup in parallel</h1>
+    <h1 class="post-title" itemprop="name headline">Scrape immobilienscout24.de in parallel with python</h1>
     <p class="post-meta"><time datetime="2019-05-14T00:00:00+02:00" itemprop="datePublished">May 14, 2019</time></p>
   </header>
 
@@ -67,11 +67,11 @@ I am also interested in real estate, particularly in  the real estate market of 
 To shed some light onto this market I decided to collect some data and play with it.</p>
 
 <p>In this post I will run you through a basic webscraper in python.
-I am using the libraries <a href="https://2.python-requests.org/en/master/">requests</a> and <a href="https://www.crummy.com/software/BeautifulSoup/">Beautifulsoup</a>.
+I am using the libraries <a href="https://2.python-requests.org/en/master/">requests</a> and <a href="https://www.crummy.com/software/BeautifulSoup/">BeautifulSoup</a>.
 With <a href="https://2.python-requests.org/en/master/">requests</a> I basically download the html document from the web that contains the information I am after.
-With <a href="https://www.crummy.com/software/BeautifulSoup/">Beautifulsoup</a> I extract that information.</p>
+With <a href="https://www.crummy.com/software/BeautifulSoup/">BeautifulSoup</a> I extract that information.</p>
 
-<p>In this post I will not waste too much time on details like how to come up with <a href="https://www.crummy.com/software/BeautifulSoup/">Beautifulsoup</a> syntax to extract information.
+<p>In this post I will not waste too much time on details like how to come up with <a href="https://www.crummy.com/software/BeautifulSoup/">BeautifulSoup</a> syntax to extract information.
 I do not consider this a tutorial but a commented example of how to scrape <a href="https://www.immobilienscout24.de/">Immoscout</a>.</p>
 
 <p>So lets get to it.</p>
@@ -134,7 +134,7 @@ classifieds so I need to browse through all pages available to scrape all classi
 </code></pre></div></div>
 
 <p>Ok, so this first function uses requests to download the HTML document behind a given URL
-and parses it so <a href="https://www.crummy.com/software/BeautifulSoup/">Beautifulsoup</a> can apply its magic to it.</p>
+and parses it so <a href="https://www.crummy.com/software/BeautifulSoup/">BeautifulSoup</a> can apply its magic to it.</p>
 
 <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">parallelize_function_timeout</span><span class="p">(</span><span class="n">urls</span><span class="p">,</span> <span class="n">func</span><span class="p">):</span>
 	<span class="k">with</span> <span class="n">ProcessPool</span><span class="p">()</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span> 
@@ -332,7 +332,7 @@ From each occurence (iteration) it retrieves the information we are after and st
 <p>What it does in particular is this:
 First it initiates empty lists for each piece or information we want to scrape like the classifieds title, square meters, number of rooms, you get the idea.
 Then it creates the URL for a specific flat by concentrating the base URL ´https://www.immobilienscout24.de/expose/´ with the classifieds ID  from the meta-data.
-It uses <a href="https://www.crummy.com/software/BeautifulSoup/">Beautifulsoup</a> to parse and extract the data we are after and combines it into a DataFrame.</p>
+It uses <a href="https://www.crummy.com/software/BeautifulSoup/">BeautifulSoup</a> to parse and extract the data we are after and combines it into a DataFrame.</p>
 
 <p>So much for setting everything up. Now we start scraping.</p>
 
@@ -611,6 +611,12 @@ At last I merge the detail-data with the meta-data to end up with only one DataF
       <div class="footer-col footer-col-2">
         <ul class="social-media-list">
           
+          <li>
+            <a href="https://github.com/domci"><span class="icon icon--github"><svg viewBox="0 0 16 16"><path fill="#828282" d="M7.999,0.431c-4.285,0-7.76,3.474-7.76,7.761 c0,3.428,2.223,6.337,5.307,7.363c0.388,0.071,0.53-0.168,0.53-0.374c0-0.184-0.007-0.672-0.01-1.32 c-2.159,0.469-2.614-1.04-2.614-1.04c-0.353-0.896-0.862-1.135-0.862-1.135c-0.705-0.481,0.053-0.472,0.053-0.472 c0.779,0.055,1.189,0.8,1.189,0.8c0.692,1.186,1.816,0.843,2.258,0.645c0.071-0.502,0.271-0.843,0.493-1.037 C4.86,11.425,3.049,10.76,3.049,7.786c0-0.847,0.302-1.54,0.799-2.082C3.768,5.507,3.501,4.718,3.924,3.65 c0,0,0.652-0.209,2.134,0.796C6.677,4.273,7.34,4.187,8,4.184c0.659,0.003,1.323,0.089,1.943,0.261 c1.482-1.004,2.132-0.796,2.132-0.796c0.423,1.068,0.157,1.857,0.077,2.054c0.497,0.542,0.798,1.235,0.798,2.082 c0,2.981-1.814,3.637-3.543,3.829c0.279,0.24,0.527,0.713,0.527,1.437c0,1.037-0.01,1.874-0.01,2.129 c0,0.208,0.14,0.449,0.534,0.373c3.081-1.028,5.302-3.935,5.302-7.362C15.76,3.906,12.285,0.431,7.999,0.431z"/></svg>
+</span><span class="username">domci</span></a>
+
+          </li>
+          
 
           
         </ul>
@@ -625,7 +631,19 @@ At last I merge the detail-data with the meta-data to end up with only one DataF
 
 </footer>
 
+    
+    
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-34766507-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
 
+  gtag('config', 'UA-34766507-2');
+</script>
+
+    
   </body>
 
 </html>

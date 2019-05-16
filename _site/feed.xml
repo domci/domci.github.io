@@ -5,22 +5,22 @@
     <description>A blog about my latest projects in data analytics and data science.</description>
     <link>http://domci.github.io/</link>
     <atom:link href="http://domci.github.io/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Wed, 15 May 2019 14:36:53 +0200</pubDate>
-    <lastBuildDate>Wed, 15 May 2019 14:36:53 +0200</lastBuildDate>
+    <pubDate>Thu, 16 May 2019 09:44:30 +0200</pubDate>
+    <lastBuildDate>Thu, 16 May 2019 09:44:30 +0200</lastBuildDate>
     <generator>Jekyll v3.1.6</generator>
     
       <item>
-        <title>Scrape Immoscout with Python Beatifulsoup in parallel</title>
+        <title>Scrape immobilienscout24.de in parallel with python</title>
         <description>&lt;p&gt;I like webscraping. I find it amazing that with a bit of code one can collect whatever data from anywere in the web  and make use of it.
 I am also interested in real estate, particularly in  the real estate market of my hometown Hamburg, Germany. 
 To shed some light onto this market I decided to collect some data and play with it.&lt;/p&gt;
 
 &lt;p&gt;In this post I will run you through a basic webscraper in python.
-I am using the libraries &lt;a href=&quot;https://2.python-requests.org/en/master/&quot;&gt;requests&lt;/a&gt; and &lt;a href=&quot;https://www.crummy.com/software/BeautifulSoup/&quot;&gt;Beautifulsoup&lt;/a&gt;.
+I am using the libraries &lt;a href=&quot;https://2.python-requests.org/en/master/&quot;&gt;requests&lt;/a&gt; and &lt;a href=&quot;https://www.crummy.com/software/BeautifulSoup/&quot;&gt;BeautifulSoup&lt;/a&gt;.
 With &lt;a href=&quot;https://2.python-requests.org/en/master/&quot;&gt;requests&lt;/a&gt; I basically download the html document from the web that contains the information I am after.
-With &lt;a href=&quot;https://www.crummy.com/software/BeautifulSoup/&quot;&gt;Beautifulsoup&lt;/a&gt; I extract that information.&lt;/p&gt;
+With &lt;a href=&quot;https://www.crummy.com/software/BeautifulSoup/&quot;&gt;BeautifulSoup&lt;/a&gt; I extract that information.&lt;/p&gt;
 
-&lt;p&gt;In this post I will not waste too much time on details like how to come up with &lt;a href=&quot;https://www.crummy.com/software/BeautifulSoup/&quot;&gt;Beautifulsoup&lt;/a&gt; syntax to extract information.
+&lt;p&gt;In this post I will not waste too much time on details like how to come up with &lt;a href=&quot;https://www.crummy.com/software/BeautifulSoup/&quot;&gt;BeautifulSoup&lt;/a&gt; syntax to extract information.
 I do not consider this a tutorial but a commented example of how to scrape &lt;a href=&quot;https://www.immobilienscout24.de/&quot;&gt;Immoscout&lt;/a&gt;.&lt;/p&gt;
 
 &lt;p&gt;So lets get to it.&lt;/p&gt;
@@ -83,7 +83,7 @@ classifieds so I need to browse through all pages available to scrape all classi
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
 
 &lt;p&gt;Ok, so this first function uses requests to download the HTML document behind a given URL
-and parses it so &lt;a href=&quot;https://www.crummy.com/software/BeautifulSoup/&quot;&gt;Beautifulsoup&lt;/a&gt; can apply its magic to it.&lt;/p&gt;
+and parses it so &lt;a href=&quot;https://www.crummy.com/software/BeautifulSoup/&quot;&gt;BeautifulSoup&lt;/a&gt; can apply its magic to it.&lt;/p&gt;
 
 &lt;div class=&quot;language-python highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;k&quot;&gt;def&lt;/span&gt; &lt;span class=&quot;nf&quot;&gt;parallelize_function_timeout&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;urls&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;func&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;):&lt;/span&gt;
 	&lt;span class=&quot;k&quot;&gt;with&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ProcessPool&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;as&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;pool&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; 
@@ -281,7 +281,7 @@ From each occurence (iteration) it retrieves the information we are after and st
 &lt;p&gt;What it does in particular is this:
 First it initiates empty lists for each piece or information we want to scrape like the classifieds title, square meters, number of rooms, you get the idea.
 Then it creates the URL for a specific flat by concentrating the base URL ´https://www.immobilienscout24.de/expose/´ with the classifieds ID  from the meta-data.
-It uses &lt;a href=&quot;https://www.crummy.com/software/BeautifulSoup/&quot;&gt;Beautifulsoup&lt;/a&gt; to parse and extract the data we are after and combines it into a DataFrame.&lt;/p&gt;
+It uses &lt;a href=&quot;https://www.crummy.com/software/BeautifulSoup/&quot;&gt;BeautifulSoup&lt;/a&gt; to parse and extract the data we are after and combines it into a DataFrame.&lt;/p&gt;
 
 &lt;p&gt;So much for setting everything up. Now we start scraping.&lt;/p&gt;
 
