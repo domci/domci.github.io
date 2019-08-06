@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "parallel webscraping inm python - immobilienscout24"
+title: "parallel webscraping in python - immobilienscout24"
 ---
 
 
