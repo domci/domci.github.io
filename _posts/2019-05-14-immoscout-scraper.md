@@ -6,46 +6,38 @@ title: "Scrape immobilienscout24.de in parallel with python"
 
 
 
-I like webscraping. I find it amazing that with a bit of code one can collect whatever data from anywere in the web  and make use of it.
-I am also interested in real estate, particularly in  the real estate market of my hometown Hamburg, Germany. 
+I like web scraping. I find it amazing that with a bit of code one can collect whatever data from anywhere in the web and make use of it.
+I am also interested in real estate, particularly in the real estate market of my hometown Hamburg, Germany. 
 To shed some light onto this market I decided to collect some data and play with it.
 
-In this post I will run you through a basic webscraper in python.
+In this post I will run you through a basic web scraper in python.
 I am using the libraries [requests](https://2.python-requests.org/en/master/) and [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/).
-With [requests](https://2.python-requests.org/en/master/) I basically download the html document from the web that contains the information I am after.
-With [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) I extract that information.
-
-In this post I will not waste too much time on details like how to come up with [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) syntax to extract information.
-I do not consider this a tutorial but a commented example of how to scrape [Immoscout](https://www.immobilienscout24.de/).
-
-So lets get to it.
+With [requests](https://2.python-requests.org/en/master/) I will download the html document that contains the information I am after.
+With [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) I will extract that information.
 
 
 
-## The rough plan
-In order to get all information on real estates for rent in Hamburg I first use the website  [Immoscout](https://www.immobilienscout24.de/) and enter our search criteria.
+## Strategy
+In order to get all information on real estates for rent in Hamburg I first use the website  [Immoscout](https://www.immobilienscout24.de/) and enter our search criteria.
 E.g. Flats for rent in Hamburg area.
 
 That leads us to the first results page with matching classifieds. There you can see that certain data like classifieds ID and address are already shown.
 
-So why not collect this data already. 
 I will call this data "meta" data. 
 
-On the bottom of the results page you see a dropdown menue with page numbers. One page on [Immoscout](https://www.immobilienscout24.de/) shows a maximum of 20
-classifieds so I need to browse through all pages available to scrape all classifieds.
+On the bottom of the results page you see a drop down menu with page numbers. One page on [Immoscout](https://www.immobilienscout24.de/) shows a maximum of 20 classifieds so I need to browse through all pages available to scrape all classifieds.
 
-I use the pages information and the meta data to build a list of all available rent classifieds, to later scrape detail information for each of them.
+I use the pages information and the meta data to build a list of all available classifieds, to later scrape detail information for each of them.
 
-When you now click on one of the flat offers, you will realize that the url looks like this `https://www.immobilienscout24.de/expose/90724026` plus a bunch of  parameters you can ignore for now.
+When you now click on one of the offers, you can see that the url looks like this `https://www.immobilienscout24.de/expose/90724026` plus a bunch of  parameters you can ignore for now.
 
-That number in the end of the url is the classifieds ID (or expose ID).
+That number in the end of the URL is the classifieds ID (or expose ID).
 
-Thats perfect, because now I can easily loop over our meta data that contains a lots of these ids, build URLs from them and scrape additional information.
-
+That's perfect, because now I can easily loop over our meta data that contains a lots of these ids, build URLs from them and scrape additional information.
 
 
 
-## The Setup
+## Setup Code
 
 First I import all the libraries that I need:
 
@@ -111,14 +103,14 @@ def parallelize_function_timeout(urls, func):
 
 The `parallelize_function_timeout` takes a list of inputs (URLs) and a function and runs this function in parallel using [multiprocessing](https://code.google.com/archive/p/python-multiprocessing/).
 
-I use [multiprocessing](https://code.google.com/archive/p/python-multiprocessing/) here because scraping large amounts of URLs is a very I/O-Bound task. While it is not that computationally expesive the bottlenec really is I/O-Flow. To speed it up I will be scraping with multiple processes simultaneously.
+I use [multiprocessing](https://code.google.com/archive/p/python-multiprocessing/) here because scraping large amounts of URLs is a very I/O-Bound task. While it is not that computationally expensive the bottleneck really is I/O-Flow. To speed it up I will be scraping with multiple processes simultaneously.
 
 So whats going on in this function?
 
-First, I initiate a pool of subprocesses and run our function on the list of URLs with `future = pool.map(func, urls, timeout=90)` and specify a timeout duration in seconds. 
-The results of all subprocesses running our function are appended into `results` and returned from the  `parallelize_function_timeout` function .If the iteration is stopped, e.g. by a keyboard interrupt it stops, if the function takes too long for one URL it times out and the URL is skipped.
+First, I initiate a pool of sub processes and run our function on the list of URLs with `future = pool.map(func, urls, timeout=90)` and specify a timeout duration in seconds. 
+The results of all sub processes running our function are appended into `results` and returned from the  `parallelize_function_timeout` function .If the iteration is stopped, e.g. by a keyboard interrupt it stops, if the function takes too long for one URL it times out and the URL is skipped.
 
-We are now done with all the process management and can finally take care of the information retrieval.
+We are now done with the process management and can finally take care of the information retrieval.
 
 
 ```python 
@@ -152,13 +144,11 @@ def scrape_meta_chunk(url, return_soup=False):
 
 ```
 
-
 This function extracts what I earlier called meta-data. 
 It downloads a search results page from [Immoscout](https://www.immobilienscout24.de/) and extracts ID and addresses of all 20 listed results.
 
-For that I use a python list comprehension to iterate through occurences of the HTML-Tag `<button>` with the class `button-link link-internal result-list-entry__map-link` and the title `Auf der Karte anzeigen`.
+For that I use a python list comprehension to iterate through occurrences of the HTML-Tag `<button>` with the class `button-link link-internal result-list-entry__map-link` and the title `Auf der Karte anzeigen`.
 From each occurence (iteration) it retrieves the information we are after and stores it in a neat [pandas](https://pandas.pydata.org/) DataFrame.
-
 
 ```python 
 
@@ -296,7 +286,7 @@ Then it creates the URL for a specific flat by concentrating the base URL ´http
 It uses [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) to parse and extract the data we are after and combines it into a DataFrame.
 
 
-So much for setting everything up. Now we start scraping.
+Thats the setup. Now we can start scraping.
 
 
 ## The Scraping Process
@@ -341,11 +331,10 @@ print('Done')
 ```
     > Done 
 
-Here we crate a new URL for each page number we have found. This gives us a list of 101 pages to scrape meta-data from.
+Here we create a new URL for each page number we have found. This gives us a list of 101 pages to scrape meta-data from.
 We pass this list and the function `realty_meta_urls` to the `parallelize_function_timeout` to scrape these URLs on multiple cores.
 This gives us a DataFrame containing meta-data for all found classifieds including their IDs.
 With that we are able to scrape each detail page as follows.
-
 
 
 ```python
@@ -394,8 +383,7 @@ print('scraped', len(realty_details_df), 'realties.')
 Here I am creating a new DataFrame with a column for each data dimension I am scraping. Then I pass a list of classifieds IDs to the `scrape_details_chunk` via `parallelize_function_timeout`. This takes a while and finally returns a clean DataFrame containing all desired detail-data.
 At last I merge the detail-data with the meta-data to end up with only one DataFrame and print the first few rows of the scraped data.
 
-Thats it. We are done.
-
+That's it. We are done.
 	
 ```python 
 
